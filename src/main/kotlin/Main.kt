@@ -6,8 +6,8 @@ import java.net.ServerSocket
 fun main(args: Array<String>) {
 
      val serverSocket = ServerSocket(6379)
-
      serverSocket.reuseAddress = true
+     println("accepted new connection")
 
      val clientSocket = serverSocket.accept()
 
@@ -17,12 +17,8 @@ fun main(args: Array<String>) {
      val command = reader.readLine()
      println("Received command: $command")
 
-     if (command == "PING") {
-          writer.write("+PONG\r\n")
-          writer.flush()
-     }
-
-     println("accepted new connection")
+     writer.write("+PONG\r\n")
+     writer.flush()
 
      clientSocket.close()
 }
