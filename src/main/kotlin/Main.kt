@@ -14,11 +14,17 @@ fun main(args: Array<String>) {
      val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
      val writer = OutputStreamWriter(clientSocket.getOutputStream())
 
-     val command = reader.readLine()
-     println("Received command: $command")
+     var command = reader.readText()
+     var occurences = countPingOccurences(command)
 
-     writer.write("+PONG\r\n")
-     writer.flush()
+     while(occurences-- > 0) {
+          writer.write("+PONG\r\n")
+          writer.flush()
+     }
 
      clientSocket.close()
+}
+
+fun countPingOccurences(command: String): Int {
+     return command.split("PING", "ping").size - 1
 }
