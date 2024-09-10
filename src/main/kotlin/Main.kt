@@ -1,10 +1,11 @@
+import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.ServerSocket
 
 fun main(args: Array<String>) {
-     val serverSocket = ServerSocket(6379)
+     val serverSocket = ServerSocket(6380)
      serverSocket.reuseAddress = true
      println("Server is running on port 6379")
 
@@ -16,8 +17,7 @@ fun main(args: Array<String>) {
                 val writer = OutputStreamWriter(clientSocket.getOutputStream())
 
                 try {
-                    val command = reader.readText()
-                    val commandList = command.split("\r\n")
+                    val commandList = parseInput(reader)
                     val commandType = commandList[2]?.trim()?.uppercase()
                     var resp = ""
                     when (commandType) {
@@ -49,4 +49,14 @@ fun main(args: Array<String>) {
                 }
             }.start()
      }
+}
+
+fun parseInput(reader: BufferedReader): List<String> {
+    val commandList = mutableListOf<String>()
+    while(true) {
+        val command = reader.readLine()
+        if (command == null || command == "") break
+        commandList.add(command)
+    }
+    return commandList
 }
