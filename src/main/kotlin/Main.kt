@@ -5,7 +5,7 @@ import java.io.OutputStreamWriter
 import java.net.ServerSocket
 
 fun main(args: Array<String>) {
-     val serverSocket = ServerSocket(6380)
+     val serverSocket = ServerSocket(6379)
      serverSocket.reuseAddress = true
      println("Server is running on port 6379")
 
