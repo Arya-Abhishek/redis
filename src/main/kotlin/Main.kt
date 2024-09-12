@@ -53,12 +53,15 @@ fun main(args: Array<String>) {
 fun parseInput(reader: BufferedReader): List<String> {
     val commandList = mutableListOf<String>()
     val numberOfCommands = reader.readLine() // will give, *2, *3, etc
+    println("Received number of commands: $numberOfCommands")
     val numberOfCommandsInt = numberOfCommands?.substring(1)?.toInt() ?: 0
+    println("Number of commands Int: $numberOfCommandsInt")
 
     for (i in 0 until numberOfCommandsInt) {
-        reader.readLine()   // will give, $3, $4, etc
+        val temp = reader.readLine() // will give, $3, $4, etc
+        println("temp: $temp")
         val command = reader.readLine()    // will give, SET, GET, etc
-        println("Received command: $command")
+        println("command: $command")
         commandList.add(command)
     }
 
