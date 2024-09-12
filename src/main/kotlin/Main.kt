@@ -5,7 +5,7 @@ import java.io.OutputStreamWriter
 import java.net.ServerSocket
 
 fun main(args: Array<String>) {
-     val serverSocket = ServerSocket(6379)
+     val serverSocket = ServerSocket(6380)
      serverSocket.reuseAddress = true
      println("Server is running on port 6379")
 
@@ -53,10 +53,15 @@ fun main(args: Array<String>) {
 
 fun parseInput(reader: BufferedReader): List<String> {
     val commandList = mutableListOf<String>()
-    while(true) {
-        val command = reader.readLine()
-        if (command == null || command == "") break
+    val numberOfCommands = reader.readLine() // will give, *2, *3, etc
+    val numberOfCommandsInt = numberOfCommands?.substring(1)?.toInt() ?: 0
+
+    for (i in 0 until numberOfCommandsInt) {
+        reader.readLine()   // will give, $3, $4, etc
+        val command = reader.readLine()    // will give, SET, GET, etc
+        println("Received command: $command")
         commandList.add(command)
     }
+
     return commandList
 }
