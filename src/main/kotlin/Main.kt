@@ -1,4 +1,3 @@
-import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -18,7 +17,7 @@ fun main(args: Array<String>) {
 
                 try {
                     val commandList = parseInput(reader)
-                    val commandType = commandList[2]?.trim()?.uppercase()
+                    val commandType = commandList[0]?.trim()?.uppercase()
                     var resp = ""
                     when (commandType) {
                         "PING" -> {
@@ -29,10 +28,10 @@ fun main(args: Array<String>) {
                             }
                         }
                         "ECHO" -> {
-                            val idxOfEcho = commandList.indexOf("ECHO")
-                            for (i in idxOfEcho+1..<commandList.size) {
+                            // ECHO will be at index 0
+                            for (i in 1..<commandList.size) {
                                 if (commandList[i] in listOf("", "\n", "\r\n")) continue
-                                resp += "${commandList[i]}\r\n"
+                                resp += "$${commandList[i].length}\r\n${commandList[i]}\r\n"
                             }
                         }
                         else -> {
