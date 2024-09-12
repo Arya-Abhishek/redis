@@ -16,31 +16,35 @@ fun main(args: Array<String>) {
                 val writer = OutputStreamWriter(clientSocket.getOutputStream())
 
                 try {
-                    val commandList = parseInput(reader)
-                    val commandType = commandList[0]?.trim()?.uppercase()
-                    var resp = ""
-                    when (commandType) {
-                        "PING" -> {
-                            commandList.forEach {
-                                if (it.trim().uppercase() == "PING") {
-                                    resp += "+PONG\r\n"
+                    while (true) {
+                        val commandList = parseInput(reader)
+                        if (commandList.isEmpty()) break
+                        val commandType = commandList[0].trim().uppercase()
+                        var resp = ""
+                        when (commandType) {
+                            "PING" -> {
+                                commandList.forEach {
+                                    if (it.trim().uppercase() == "PING") {
+                                        resp += "+PONG\r\n"
+                                    }
                                 }
                             }
-                        }
-                        "ECHO" -> {
-                            // ECHO will be at index 0
-                            for (i in 1..<commandList.size) {
-                                if (commandList[i] in listOf("", "\n", "\r\n")) continue
-                                resp += "$${commandList[i].length}\r\n${commandList[i]}\r\n"
+
+                            "ECHO" -> {
+                                for (i in 1..<commandList.size) {
+                                    if (commandList[i] in listOf("", "\n", "\r\n")) continue
+                                    resp += "$${commandList[i].length}\r\n${commandList[i]}\r\n"
+                                }
+                            }
+
+                            else -> {
+                                resp = "-ERR unknown command '$commandType'\r\n"
                             }
                         }
-                        else -> {
-                            resp = "-ERR unknown command '$commandType'\r\n"
-                        }
-                    }
 
-                    writer.write(resp)
-                    writer.flush()
+                        writer.write(resp)
+                        writer.flush()
+                    }
                 } catch (e: Exception) {
                     println("Error: $e")
                 } finally {
@@ -52,16 +56,12 @@ fun main(args: Array<String>) {
 
 fun parseInput(reader: BufferedReader): List<String> {
     val commandList = mutableListOf<String>()
-    val numberOfCommands = reader.readLine() // will give, *2, *3, etc
-    println("Received number of commands: $numberOfCommands")
-    val numberOfCommandsInt = numberOfCommands?.substring(1)?.toInt() ?: 0
-    println("Number of commands Int: $numberOfCommandsInt")
+    val numberOfCommands = reader.readLine() ?: return emptyList() // will give, *2, *3, etc
+    val numberOfCommandsInt = numberOfCommands.substring(1).toInt() ?: 0
 
     for (i in 0 until numberOfCommandsInt) {
-        val temp = reader.readLine() // will give, $3, $4, etc
-        println("temp: $temp")
+        reader.readLine() // will give, $3, $4, etc
         val command = reader.readLine()    // will give, SET, GET, etc
-        println("command: $command")
         commandList.add(command)
     }
 
