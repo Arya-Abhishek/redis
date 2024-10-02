@@ -211,4 +211,67 @@ class MainKtTest{
         clientSocket2.close()
         serverThread.interrupt()
     }
+
+    @Test
+    fun testSetWithExpiryAndGetWithinExpiry() {
+        val serverThread = Thread {
+            main(arrayOf())
+        }
+        serverThread.start()
+
+        Thread.sleep(1000) // Give the server some time to start
+
+        val clientSocket = Socket("localhost", 6379)
+        val writer = OutputStreamWriter(clientSocket.getOutputStream())
+        val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
+
+        // Test SET command with PX option
+        writer.write("*5\r\n\$3\r\nSET\r\n\$3\r\nfoo\r\n\$3\r\nbar\r\n\$2\r\nPX\r\n\$3\r\n1000\r\n")
+        writer.flush()
+        var response = reader.readLine()
+        assertEquals("+OK", response)
+
+        // Test GET command within expiry time
+        writer.write("*2\r\n\$3\r\nGET\r\n\$3\r\nfoo\r\n")
+        writer.flush()
+        response = reader.readLine()
+        assertEquals("\$3", response)
+        response = reader.readLine()
+        assertEquals("bar", response)
+
+        clientSocket.close()
+        serverThread.interrupt()
+    }
+
+    @Test
+    fun testSetWithExpiryAndGetAfterExpiry() {
+        val serverThread = Thread {
+            main(arrayOf())
+        }
+        serverThread.start()
+
+        Thread.sleep(1000) // Give the server some time to start
+
+        val clientSocket = Socket("localhost", 6379)
+        val writer = OutputStreamWriter(clientSocket.getOutputStream())
+        val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
+
+        // Test SET command with PX option
+        writer.write("*5\r\n\$3\r\nSET\r\n\$3\r\nfoo\r\n\$3\r\nbar\r\n\$2\r\nPX\r\n\$3\r\n1000\r\n")
+        writer.flush()
+        var response = reader.readLine()
+        assertEquals("+OK", response)
+
+        // Wait for the expiry time to pass
+        Thread.sleep(1500)
+
+        // Test GET command after expiry time
+        writer.write("*2\r\n\$3\r\nGET\r\n\$3\r\nfoo\r\n")
+        writer.flush()
+        response = reader.readLine()
+        assertEquals("\$-1", response)
+
+        clientSocket.close()
+        serverThread.interrupt()
+    }
 }

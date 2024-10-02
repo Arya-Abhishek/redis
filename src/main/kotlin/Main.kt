@@ -12,7 +12,7 @@ fun main(args: Array<String>) {
           val clientSocket = serverSocket.accept()
 
             Thread {
-                val redisDataStore = mutableMapOf<String, String>()
+                val redisDataStore = mutableMapOf<String, RedisValue>()
                 val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
                 val writer = OutputStreamWriter(clientSocket.getOutputStream())
 
@@ -39,15 +39,19 @@ fun main(args: Array<String>) {
                             }
 
                             "SET" -> {
-                                val key = commandList[1]
-                                val value = commandList[2]
-                                redisDataStore[key] = value // set the value in redis
+                                val key = commandList[1] // get the key
+                                val value = commandList[2] // get the value
+                                if (commandList.size > 3 && commandList[3].uppercase() == "PX") {
+                                    val expiryTime = commandList[4].toLong() // get the expiry time
+                                    redisDataStore[key] = RedisValue(value, expiryTime, System.currentTimeMillis())
+                                } else
+                                redisDataStore[key] = RedisValue(value, null, System.currentTimeMillis()) // set the value in redis
                                 resp = "+OK\r\n"
                             }
 
                             "GET" -> {
                                 val key = commandList[1]
-                                val value = redisDataStore[key] ?: ""
+                                val value = getValue(key, redisDataStore)
                                 resp = if (value.isNotEmpty()){ "\$${value.length}\r\n${value}\r\n" } else "\$-1\r\n"
                             }
 
@@ -81,3 +85,18 @@ fun parseInput(reader: BufferedReader): List<String> {
 
     return commandList
 }
+
+fun getValue(key: String, redisDataStore: MutableMap<String, RedisValue>): String {
+    val redisValue = redisDataStore[key] ?: return ""
+    if (redisValue.expiryTimeMillis != null && (redisValue.expiryTimeMillis + redisValue.lastSetTimeMillis < System.currentTimeMillis())) {
+        redisDataStore.remove(key)
+        return ""
+    }
+    return redisValue.value
+}
+
+data class RedisValue(
+    val value: String,
+    val expiryTimeMillis: Long?,
+    val lastSetTimeMillis: Long
+)
