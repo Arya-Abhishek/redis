@@ -12,6 +12,7 @@ fun main(args: Array<String>) {
           val clientSocket = serverSocket.accept()
 
             Thread {
+                val redisDataStore = mutableMapOf<String, String>()
                 val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
                 val writer = OutputStreamWriter(clientSocket.getOutputStream())
 
@@ -35,6 +36,19 @@ fun main(args: Array<String>) {
                                     if (commandList[i] in listOf("", "\n", "\r\n")) continue
                                     resp += "$${commandList[i].length}\r\n${commandList[i]}\r\n"
                                 }
+                            }
+
+                            "SET" -> {
+                                val key = commandList[1]
+                                val value = commandList[2]
+                                redisDataStore[key] = value // set the value in redis
+                                resp = "+OK\r\n"
+                            }
+
+                            "GET" -> {
+                                val key = commandList[1]
+                                val value = redisDataStore[key] ?: ""
+                                resp = if (value.isNotEmpty()){ "\$${value.length}\r\n${value}\r\n" } else "\$-1\r\n"
                             }
 
                             else -> {
