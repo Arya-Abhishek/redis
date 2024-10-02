@@ -2,8 +2,14 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.ServerSocket
+import java.nio.file.Files
+import java.nio.file.Paths
 
 fun main(args: Array<String>) {
+    val redisDataStore = mutableMapOf<String, RedisValue>()
+    // RDB Persistence
+    createRdbPersistence(args, redisDataStore)
+
      val serverSocket = ServerSocket(6379)
      serverSocket.reuseAddress = true
      println("Server is running on port 6379")
@@ -12,7 +18,7 @@ fun main(args: Array<String>) {
           val clientSocket = serverSocket.accept()
 
             Thread {
-                val redisDataStore = mutableMapOf<String, RedisValue>()
+
                 val reader = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
                 val writer = OutputStreamWriter(clientSocket.getOutputStream())
 
@@ -53,6 +59,28 @@ fun main(args: Array<String>) {
                                 val key = commandList[1]
                                 val value = getValue(key, redisDataStore)
                                 resp = if (value.isNotEmpty()){ "\$${value.length}\r\n${value}\r\n" } else "\$-1\r\n"
+                            }
+
+                            "CONFIG" -> {
+                                if (commandList.size > 1 && commandList[1].uppercase() == "GET") {
+                                    val configKey = commandList[2]
+                                    resp = "*2\r\n"
+                                    when (configKey) {
+                                        "dir" -> {
+                                            val dir = redisDataStore["dir"]?.value ?: ""
+                                            resp += "\$${"dir".length}\r\ndir\r\n\$${dir.length}\r\n${dir}\r\n"
+                                        }
+                                        "dbfilename" -> {
+                                            val dbFilename = redisDataStore["dbFilename"]?.value ?: ""
+                                            resp += "\$${"dbfilename".length}\r\ndbfilename\r\n\$${dbFilename.length}\r\n${dbFilename}\r\n"
+                                        }
+                                        else -> {
+                                            resp = "-ERR unknown CONFIG parameter '$configKey'\r\n"
+                                        }
+                                    }
+                                } else { // config set
+                                    resp = "-ERR CONFIG subcommand must be one of GET\r\n"
+                                }
                             }
 
                             else -> {
@@ -100,3 +128,39 @@ data class RedisValue(
     val expiryTimeMillis: Long?,
     val lastSetTimeMillis: Long
 )
+
+fun createRdbPersistence(args: Array<String>, redisDataStore: MutableMap<String, RedisValue>) {
+    // Default values
+    var dir = "/tmp/redis-files"
+    var dbFilename = "dump.rdb"
+
+    // Parse command line arguments
+    for (i in args.indices) {
+        when (args[i]) {
+            "--dir" -> if (i + 1 < args.size) dir = args[i + 1]
+            "--dbfilename" -> if (i + 1 < args.size) dbFilename = args[i + 1]
+        }
+    }
+
+    // Update the map with the values
+    redisDataStore["dir"] = RedisValue(dir, null, System.currentTimeMillis())
+    redisDataStore["dbFilename"] = RedisValue(dbFilename, null, System.currentTimeMillis())
+
+    // Create directory if it doesn't exist
+    val dirPath = Paths.get(dir)
+    if (!Files.exists(dirPath)) {
+        Files.createDirectories(dirPath)
+        println("Directory created: $dir")
+    } else {
+        println("Directory already exists: $dir")
+    }
+
+    // Create database file
+    val dbFilePath = Paths.get(dir, dbFilename)
+    if (!Files.exists(dbFilePath)) {
+        Files.createFile(dbFilePath)
+        println("Database file created: $dbFilePath")
+    } else {
+        println("Database file already exists: $dbFilePath")
+    }
+}
