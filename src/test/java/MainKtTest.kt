@@ -3,6 +3,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.io.BufferedReader
+import java.io.FileInputStream
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.Socket
@@ -332,4 +334,21 @@ class MainKtTest{
         clientSocket.close()
         serverThread.interrupt()
     }
+}
+
+// For debugging RDB file
+fun printRDBFile() {
+    println("Printing RDB file")
+    val dbFilePath = getDbFilePath()
+    try {
+        FileInputStream(dbFilePath).use { fis ->
+            var byteRead: Int
+            while (fis.read().also { byteRead = it } != -1) {
+                print(byteRead.toString(16) + " ")
+            }
+        }
+    } catch (e: IOException) {
+        println("Error while reading RDB file: $e")
+    }
+    println("End of RDB file")
 }
