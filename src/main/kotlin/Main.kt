@@ -6,9 +6,12 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 fun main(args: Array<String>) {
-    val redisDataStore = mutableMapOf<String, RedisValue>()
+    val redisDataStore = mutableMapOf<String, String>()
+    val redisKeyExpiry = mutableMapOf<String, Long>()
+    val redisConfigStore = mutableMapOf<String, String>()
+
     // RDB Persistence
-    createRdbPersistence(args, redisDataStore)
+    createRdbPersistence(args, redisConfigStore)
 
      val serverSocket = ServerSocket(6379)
      serverSocket.reuseAddress = true
@@ -49,15 +52,17 @@ fun main(args: Array<String>) {
                                 val value = commandList[2] // get the value
                                 if (commandList.size > 3 && commandList[3].uppercase() == "PX") {
                                     val expiryTime = commandList[4].toLong() // get the expiry time
-                                    redisDataStore[key] = RedisValue(value, expiryTime, System.currentTimeMillis())
-                                } else
-                                redisDataStore[key] = RedisValue(value, null, System.currentTimeMillis()) // set the value in redis
+                                    redisDataStore[key] = value // set the value in redis
+                                    redisKeyExpiry[key] = System.currentTimeMillis() + expiryTime // set the expiry time
+                                } else {
+                                    redisDataStore[key] = value // set the value in redis
+                                }
                                 resp = "+OK\r\n"
                             }
 
                             "GET" -> {
                                 val key = commandList[1]
-                                val value = getValue(key, redisDataStore)
+                                val value = getValue(key, redisDataStore, redisKeyExpiry)
                                 resp = if (value.isNotEmpty()){ "\$${value.length}\r\n${value}\r\n" } else "\$-1\r\n"
                             }
 
@@ -67,11 +72,11 @@ fun main(args: Array<String>) {
                                     resp = "*2\r\n"
                                     when (configKey) {
                                         "dir" -> {
-                                            val dir = redisDataStore["dir"]?.value ?: ""
+                                            val dir = redisConfigStore["dir"] ?: ""
                                             resp += "\$${"dir".length}\r\ndir\r\n\$${dir.length}\r\n${dir}\r\n"
                                         }
                                         "dbfilename" -> {
-                                            val dbFilename = redisDataStore["dbFilename"]?.value ?: ""
+                                            val dbFilename = redisConfigStore["dbFilename"] ?: ""
                                             resp += "\$${"dbfilename".length}\r\ndbfilename\r\n\$${dbFilename.length}\r\n${dbFilename}\r\n"
                                         }
                                         else -> {
@@ -114,13 +119,16 @@ fun parseInput(reader: BufferedReader): List<String> {
     return commandList
 }
 
-fun getValue(key: String, redisDataStore: MutableMap<String, RedisValue>): String {
+fun getValue(key: String, redisDataStore: MutableMap<String, String>, redisKeyExpiry: MutableMap<String, Long>): String {
     val redisValue = redisDataStore[key] ?: return ""
-    if (redisValue.expiryTimeMillis != null && (redisValue.expiryTimeMillis + redisValue.lastSetTimeMillis < System.currentTimeMillis())) {
-        redisDataStore.remove(key)
-        return ""
+    if (redisKeyExpiry.containsKey(key) && redisKeyExpiry[key] != null) {
+        if (redisKeyExpiry[key]!! < System.currentTimeMillis()) {
+            redisDataStore.remove(key)
+            return ""
+        }
     }
-    return redisValue.value
+
+    return redisValue
 }
 
 data class RedisValue(
@@ -129,7 +137,7 @@ data class RedisValue(
     val lastSetTimeMillis: Long
 )
 
-fun createRdbPersistence(args: Array<String>, redisDataStore: MutableMap<String, RedisValue>) {
+fun createRdbPersistence(args: Array<String>, redisConfigStore: MutableMap<String, String>) {
     // Default values
     var dir = "/tmp/redis-files"
     var dbFilename = "dump.rdb"
@@ -143,8 +151,8 @@ fun createRdbPersistence(args: Array<String>, redisDataStore: MutableMap<String,
     }
 
     // Update the map with the values
-    redisDataStore["dir"] = RedisValue(dir, null, System.currentTimeMillis())
-    redisDataStore["dbFilename"] = RedisValue(dbFilename, null, System.currentTimeMillis())
+    redisConfigStore["dir"] = dir
+    redisConfigStore["dbFilename"] = dbFilename
 
     // Create directory if it doesn't exist
     val dirPath = Paths.get(dir)
