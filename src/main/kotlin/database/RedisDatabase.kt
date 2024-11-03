@@ -10,7 +10,7 @@ import java.io.PushbackInputStream
 class RedisDatabase(val redisConfig: RedisConfig) {
     var exists = false
     var validHeader = false
-    var validMedata = false
+    var validMetadata = false
     var validDatabase = false
     val databases = mutableMapOf<Int, RedisCache>()
 
@@ -26,7 +26,7 @@ class RedisDatabase(val redisConfig: RedisConfig) {
         exists = true
         validHeader = true
         readMetadata(inputStream)
-        validMedata = true
+        validMetadata = true
         readDatabases(inputStream)
         validDatabase = true
     }
@@ -55,7 +55,15 @@ class RedisDatabase(val redisConfig: RedisConfig) {
         val map = mutableMapOf<String, CacheValue>()
         val cacheValue = null
         for (i in 0 until hashTableSize) {
-            val encoding = inputStream.read()
+            var ttl = -1L
+            val pushbackInputStream = PushbackInputStream(inputStream)
+            val peekByte = peekByte(pushbackInputStream)
+            if (peekByte == 0xFD || peekByte == 0xFC) { // First thing is the expire time
+                val expire = read32bitInteger(inputStream)
+                val multiplier = if (peekByte == 0xFD) 1000 else 1
+                ttl = expire.toLong() * multiplier // Convert to milliseconds
+            }
+            val encoding = pushbackInputStream.read()
             val key = readEncodedString(inputStream)
             if (key == null) {
                 throw Exception("Invalid file format")
@@ -64,11 +72,8 @@ class RedisDatabase(val redisConfig: RedisConfig) {
             if (value == null) {
                 throw Exception("Invalid file format")
             }
-            var cacheValue = CacheValue(key, value, -1)
-            if (peekByte(inputStream) == 0xFD) {
-                val expire = read32bitInteger(inputStream)
-                cacheValue = CacheValue(key, value, expire.toLong())
-            }
+
+            val cacheValue = CacheValue(key, value, ttl)
             db.add(cacheValue)
         }
 
@@ -188,10 +193,9 @@ class RedisDatabase(val redisConfig: RedisConfig) {
     /*
     * Utility functions
     * */
-    fun peekByte(inputStream: FileInputStream): Int {
-        val pushbackInputStream = PushbackInputStream(inputStream)
-        val byte = pushbackInputStream.read()
-        pushbackInputStream.unread(byte)
+    fun peekByte(inputStream: PushbackInputStream): Int {
+        val byte = inputStream.read()
+        inputStream.unread(byte)
         return byte
     }
 
