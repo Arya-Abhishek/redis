@@ -53,6 +53,6 @@ fun main(args: Array<String>) {
     commandHandler.registerCommand("GET", GetCommandExecutor())
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
 
-    val server = Server(redisConfig.port().toInt(), commandHandler)
+    val server = Server(redisConfig.port(), commandHandler)
     server.start()
 }

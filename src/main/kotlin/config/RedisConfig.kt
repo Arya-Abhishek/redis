@@ -14,7 +14,7 @@ class RedisConfig(val configMap: MutableMap<String, String>) {
         return "${dir()}/${dbfilename()}"
     }
 
-    fun port(): String {
-        return configMap["port"] ?: "6379"
+    fun port(): Int {
+        return configMap["port"]?.toInt() ?: 6379
     }
 }
