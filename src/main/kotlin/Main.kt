@@ -8,13 +8,6 @@ import exectuor.GetCommandExecutor
 import exectuor.KeysCommandExecutor
 import exectuor.PingCommandExecutor
 import exectuor.SetCommandExecutor
-import java.io.BufferedReader
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.zip.CRC32
 
 fun parseArgsParams(args: Array<String>): Map<String, String> {
     val argsParamsParsed = mutableMapOf<String, String>()
@@ -60,6 +53,6 @@ fun main(args: Array<String>) {
     commandHandler.registerCommand("GET", GetCommandExecutor())
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
 
-    val server = Server(6379, commandHandler)
+    val server = Server(redisConfig.port().toInt(), commandHandler)
     server.start()
 }

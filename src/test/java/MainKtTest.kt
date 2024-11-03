@@ -419,4 +419,46 @@ class MainKtTest{
         // Clean up the temporary file
         tempFile.delete()
     }
+
+    @Test
+    fun `should give port as argument when starting redis server`() {
+        serverThread = Thread {
+            main(arrayOf("--port", "6380"))
+        }
+        serverThread?.start()
+
+        Thread.sleep(1000)
+
+        val socket = Socket("localhost", 6380)
+        val writer = OutputStreamWriter(socket.getOutputStream())
+        val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+
+        writer.write("*1\r\n$4\r\nPING\r\n")
+        writer.flush()
+
+        assertEquals("+PONG", reader.readLine())
+
+        socket.close()
+    }
+
+    @Test
+    fun `should run on default port 6379 when no port is given as argument`() {
+        serverThread = Thread {
+            main(arrayOf())
+        }
+        serverThread?.start()
+
+        Thread.sleep(1000)
+
+        val socket = Socket("localhost", 6379)
+        val writer = OutputStreamWriter(socket.getOutputStream())
+        val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+
+        writer.write("*1\r\n$4\r\nPING\r\n")
+        writer.flush()
+
+        assertEquals("+PONG", reader.readLine())
+
+        socket.close()
+    }
 }
