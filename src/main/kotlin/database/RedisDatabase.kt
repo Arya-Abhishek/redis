@@ -58,12 +58,17 @@ class RedisDatabase(val redisConfig: RedisConfig) {
             var ttl = -1L
             val pushbackInputStream = PushbackInputStream(inputStream)
             val peekByte = peekByte(pushbackInputStream)
-            if (peekByte == 0xFD || peekByte == 0xFC) { // First thing is the expire time
-                val expire = read32bitInteger(inputStream)
-                val multiplier = if (peekByte == 0xFD) 1000 else 1
-                ttl = expire.toLong() * multiplier // Convert to milliseconds
+            var ttlFlag = false
+            if (peekByte == 0xFD ) { // First thing is the expire time
+                val expire = read32bitInteger(inputStream) // read next 4 bytes
+                ttl = expire.toLong() * 1000 // Convert to milliseconds
+                ttlFlag = true
+            } else if (peekByte == 0xFC) {
+                val expire = read64bitInteger(inputStream) // read next 8 bytes
+                ttl = expire.toLong()
+                ttlFlag = true
             }
-            val encoding = pushbackInputStream.read()
+            val encoding = if(ttlFlag) inputStream.read() else pushbackInputStream.read()
             val key = readEncodedString(inputStream)
             if (key == null) {
                 throw Exception("Invalid file format")
@@ -226,5 +231,26 @@ class RedisDatabase(val redisConfig: RedisConfig) {
         val byte2 = inputStream.read() shl 16
         val byte3 = inputStream.read() shl 24
         return (byte3 or byte2 or byte1 or byte0).toString()
+    }
+
+    companion object {
+        fun read64bitInteger(inputStream: FileInputStream): String {
+//            val byte0 = inputStream.read().toLong()
+//            val byte1 = inputStream.read().toLong() shl 8
+//            val byte2 = inputStream.read().toLong() shl 16
+//            val byte3 = inputStream.read().toLong() shl 24
+//            val byte4 = inputStream.read().toLong() shl 32
+//            val byte5 = inputStream.read().toLong() shl 40
+//            val byte6 = inputStream.read().toLong() shl 48
+//            val byte7 = inputStream.read().toLong() shl 56
+//            return (byte7 or byte6 or byte5 or byte4 or byte3 or byte2 or byte1 or byte0).toString()
+
+            var value = 0L
+            for (i in 0 until 8) {
+                val byte = inputStream.read()
+                value = value or (byte.toLong() and 0xFF shl (i * 8))
+            }
+            return value.toString()
+        }
     }
 }
