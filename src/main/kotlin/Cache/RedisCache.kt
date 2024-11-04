@@ -1,4 +1,5 @@
 package Cache
+import config.ReplicationConfig
 import java.util.concurrent.ConcurrentHashMap
 
 class RedisCache {
@@ -28,12 +29,21 @@ class RedisCache {
 
     }
 
-    fun getInfo(configMap: Map<String, String>): List<String> {
-        val res = mutableListOf<String>()
-        res.add("# Replication")
-        configMap.filter { it.key !in listOf("port", "dbfilename", "dir") }
-            .forEach { (key, value) -> res.add("$key:$value")}
-        return res
+    fun getInfo(replicationConfig: ReplicationConfig): String {
+        val infoRes = """
+            # Replication
+            role:${replicationConfig.getRole()}
+            connected_slaves:0
+            master_replid:${replicationConfig.getMasterReplid()}
+            master_repl_offset:${replicationConfig.getMasterReplOffset()}
+            second_repl_offset:-1
+            repl_backlog_active:0
+            repl_backlog_size:1048576
+            repl_backlog_first_byte_offset:0
+            repl_backlog_histlen:0
+        """.trimIndent()
+
+        return infoRes
     }
 }
 

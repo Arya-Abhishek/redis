@@ -2,7 +2,7 @@ package exectuor
 
 import Cache.RedisCache
 import command.Command
-import org.junit.jupiter.api.Assertions.*
+import config.ReplicationConfig
 import org.junit.jupiter.api.Test
 import java.io.BufferedReader
 import java.io.PrintWriter
@@ -18,8 +18,8 @@ class InfoCommandExecutorTest {
         val writer = PrintWriter(stringWriter)
         val redisCache = RedisCache()
 
-        val configMap = mutableMapOf("role" to "master")
-        val infoCommandExecutor = InfoCommandExecutor(configMap)
+        val replicationConfig = ReplicationConfig()
+        val infoCommandExecutor = InfoCommandExecutor(replicationConfig)
         infoCommandExecutor.execute(cmd, writer, redisCache)
 
         writer.flush()
@@ -34,8 +34,9 @@ class InfoCommandExecutorTest {
         val writer = PrintWriter(stringWriter)
         val redisCache = RedisCache()
 
-        val configMap = mutableMapOf("role" to "slave")
-        val infoCommandExecutor = InfoCommandExecutor(configMap)
+        val replicationConfig = ReplicationConfig()
+        replicationConfig.setRole("slave")
+        val infoCommandExecutor = InfoCommandExecutor(replicationConfig)
         infoCommandExecutor.execute(cmd, writer, redisCache)
 
         writer.flush()

@@ -1,6 +1,7 @@
 import Cache.RedisCache
 import config.RedisConfig
 import command.CommandsHandler
+import config.ReplicationConfig
 import database.RedisDatabase
 import exectuor.ConfigCommandExecutor
 import exectuor.EchoCommandExecutor
@@ -10,9 +11,11 @@ import exectuor.KeysCommandExecutor
 import exectuor.PingCommandExecutor
 import exectuor.SetCommandExecutor
 
-fun parseArgsParams(args: Array<String>): Map<String, String> {
-    val argsParamsParsed = mutableMapOf<String, String>()
+const val SLAVE = "slave"
+const val REPLICAOF = "replicaof"
 
+fun parseArgsParams(args: Array<String>, replicationConfig: ReplicationConfig): Map<String, String> {
+    val argsParamsParsed = mutableMapOf<String, String>()
     var i = 0
     while (i < args.size) {
         if (args[i].startsWith("--")) {
@@ -22,10 +25,8 @@ fun parseArgsParams(args: Array<String>): Map<String, String> {
         i += 1
     }
     // Add some default config values
-    // TODO: need to handle this in better way, right now hardcoding
-    argsParamsParsed.putIfAbsent("role", "master")
-    if (argsParamsParsed.containsKey("replicaof")) {
-        argsParamsParsed["role"] = "slave" // current redis instance is slave if it has replicaof config
+    if (argsParamsParsed.containsKey(REPLICAOF)) {
+        replicationConfig.setRole(SLAVE) // else default is master
     }
 
     return argsParamsParsed
@@ -33,7 +34,8 @@ fun parseArgsParams(args: Array<String>): Map<String, String> {
 
 fun main(args: Array<String>) {
     var redisCache = RedisCache()
-    val params = parseArgsParams(args)
+    val replicationConfig = ReplicationConfig()
+    val params = parseArgsParams(args, replicationConfig)
 
     val config = HashMap(params)
 
@@ -58,7 +60,7 @@ fun main(args: Array<String>) {
     commandHandler.registerCommand("ECHO", EchoCommandExecutor())
     commandHandler.registerCommand("SET", SetCommandExecutor())
     commandHandler.registerCommand("GET", GetCommandExecutor())
-    commandHandler.registerCommand("INFO", InfoCommandExecutor(config))
+    commandHandler.registerCommand("INFO", InfoCommandExecutor(replicationConfig))
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
 
     val server = Server(redisConfig.port(), commandHandler)
