@@ -9,6 +9,7 @@ import exectuor.GetCommandExecutor
 import exectuor.InfoCommandExecutor
 import exectuor.KeysCommandExecutor
 import exectuor.PingCommandExecutor
+import exectuor.ReplconfCommandExecutor
 import exectuor.SetCommandExecutor
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -41,7 +42,7 @@ fun parseArgsParams(args: Array<String>, replicationConfig: ReplicationConfig): 
     return argsParamsParsed
 }
 
-fun establishConnectionWithMaster(replicationConfig: ReplicationConfig) {
+fun establishConnectionWithMaster(replicationConfig: ReplicationConfig, port: Int) {
     try {
         if (replicationConfig.getRole() == SLAVE) {
             val masterHost = replicationConfig.getMasterHost()
@@ -51,13 +52,32 @@ fun establishConnectionWithMaster(replicationConfig: ReplicationConfig) {
             val writer = OutputStreamWriter(socket.getOutputStream())
             val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
 
-            // Send PING command
+            // TODO: refactor this, with runCatching and splitting each one into separate functions
+
+            // 1. Send PING command
             writer.write("*1\r\n\$4\r\nPING\r\n")
             writer.flush()
             val pingResponse = reader.readLine()
             if (pingResponse != "+PONG") {
                 throw Exception("Failed to connect to master: PING response was $pingResponse")
             }
+
+            // 2. Send REPLCONF listening-port command
+            writer.write("*3\r\n\$8\r\nREPLCONF\r\n\$14\r\nlistening-port\r\n\$${port.toString().length}\r\n$port\r\n")
+            writer.flush()
+            val replconfResponse = reader.readLine()
+            if (replconfResponse != "+OK") {
+                throw Exception("Failed to connect to master: REPLCONF response was $replconfResponse")
+            }
+
+            // 3. Send REPLCONF capa psync2 command
+            writer.write("*3\r\n\$8\r\nREPLCONF\r\n\$4\r\ncapa\r\n\$6\r\npsync2\r\n")
+            writer.flush()
+            val capaResponse = reader.readLine()
+            if (capaResponse != "+OK") {
+                throw Exception("Failed to connect to master: REPLCONF response was $capaResponse")
+            }
+
             println("Connected to master")
         }
     } catch (e: Exception) {
@@ -70,11 +90,13 @@ fun main(args: Array<String>) {
     val replicationConfig = ReplicationConfig()
     val params = parseArgsParams(args, replicationConfig)
     // Establish connection with master if this is slave instance
-    establishConnectionWithMaster(replicationConfig)
+
 
     val config = HashMap(params)
+    // TODO: can replace these map and class wrapping with getters and setters, with data class
+    var redisConfig = RedisConfig(config)   // Just wrapping the config map into RedisConfig object along with getters and setters
 
-    var redisConfig = RedisConfig(config)
+    establishConnectionWithMaster(replicationConfig, redisConfig.port())
     val redisDatabases = RedisDatabase(redisConfig)
 
     // If the RDB database file exists, then read and build the redisCache from it
@@ -97,6 +119,7 @@ fun main(args: Array<String>) {
     commandHandler.registerCommand("GET", GetCommandExecutor())
     commandHandler.registerCommand("INFO", InfoCommandExecutor(replicationConfig))
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
+    commandHandler.registerCommand("REPLCONF", ReplconfCommandExecutor())
 
     val server = Server(redisConfig.port(), commandHandler)
     server.start()

@@ -22,6 +22,14 @@ class Command(
         return words.drop(1)
     }
 
+    fun subCommand(): String {
+        return params().first()
+    }
+
+    fun subCommandVal(): String {
+        return params().get(1)
+    }
+
     private fun params(reader: BufferedReader): List<String> {
         val starChar = this.reader.read() // reading first char from RESP input string
         if (starChar == -1) return emptyList()
