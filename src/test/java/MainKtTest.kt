@@ -1,4 +1,3 @@
-import command.CommandsHandler
 import config.RedisConfig
 import database.RedisDatabase
 import org.junit.jupiter.api.AfterEach
@@ -18,11 +17,17 @@ import java.net.Socket
 class MainKtTest{
 
     private var serverThread: Thread? = null
+    private var masterThread: Thread? = null
+    private var slaveThread: Thread? = null
 
     @AfterEach
     fun tearDown() {
         serverThread?.interrupt()
         serverThread = null
+        masterThread?.interrupt()
+        masterThread = null
+        slaveThread?.interrupt()
+        slaveThread = null
     }
 
     @Test
@@ -490,5 +495,42 @@ class MainKtTest{
 //        assertTrue(infoString.contains("master_port:6379"), "INFO output should contain master port info")
 
         socket.close()
+    }
+
+    @Test // Doubt -> Ask, how to test this scenario with tests?
+    fun `test slave connects to master and sends PING`() {
+        masterThread = Thread {
+            main(arrayOf("--port", "6379"))
+        }
+        masterThread?.start()
+
+        Thread.sleep(5000) // Wait for the master to start
+
+        // Wait for the master to start
+        waitForMasterToStart()
+
+        slaveThread = Thread {
+            main(arrayOf("--port", "6380", "--replicaof", "localhost 6379"))
+        }
+        slaveThread?.start()
+
+        Thread.sleep(1000)  // Wait for the slave to start
+
+        // TODO: How to test this scenario with tests? -> Any better approach
+        // Though, the print statement is working, but not in debug mode
+    }
+
+    // Helper function to wait for the master to start -> can use in debug mode
+    private fun waitForMasterToStart() {
+        var connected = false
+        while (!connected) {
+            try {
+                Socket("localhost", 6379).use { socket ->
+                    connected = true
+                }
+            } catch (e: Exception) {
+                Thread.sleep(100)
+            }
+        }
     }
 }

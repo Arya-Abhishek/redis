@@ -1,7 +1,7 @@
 package database
 
-import Cache.CacheValue
-import Cache.RedisCache
+import cache.CacheValue
+import cache.RedisCache
 import config.RedisConfig
 import java.io.File
 import java.io.FileInputStream

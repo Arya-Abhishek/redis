@@ -1,4 +1,4 @@
-import Cache.RedisCache
+import cache.RedisCache
 import config.RedisConfig
 import command.CommandsHandler
 import config.ReplicationConfig
@@ -10,6 +10,10 @@ import exectuor.InfoCommandExecutor
 import exectuor.KeysCommandExecutor
 import exectuor.PingCommandExecutor
 import exectuor.SetCommandExecutor
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.net.Socket
 
 const val SLAVE = "slave"
 const val REPLICAOF = "replicaof"
@@ -27,15 +31,46 @@ fun parseArgsParams(args: Array<String>, replicationConfig: ReplicationConfig): 
     // Add some default config values
     if (argsParamsParsed.containsKey(REPLICAOF)) {
         replicationConfig.setRole(SLAVE) // else default is master
+        val masterConfig = argsParamsParsed[REPLICAOF]!!.split(" ")
+        val masterHost = masterConfig[0]
+        val masterPort = masterConfig[1]
+        replicationConfig.setMasterHost(masterHost)
+        replicationConfig.setMasterPort(masterPort.toInt())
     }
 
     return argsParamsParsed
+}
+
+fun establishConnectionWithMaster(replicationConfig: ReplicationConfig) {
+    try {
+        if (replicationConfig.getRole() == SLAVE) {
+            val masterHost = replicationConfig.getMasterHost()
+            val masterPort = replicationConfig.getMasterPort()
+
+            val socket = Socket(masterHost, masterPort!!)
+            val writer = OutputStreamWriter(socket.getOutputStream())
+            val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+
+            // Send PING command
+            writer.write("*1\r\n\$4\r\nPING\r\n")
+            writer.flush()
+            val pingResponse = reader.readLine()
+            if (pingResponse != "+PONG") {
+                throw Exception("Failed to connect to master: PING response was $pingResponse")
+            }
+            println("Connected to master")
+        }
+    } catch (e: Exception) {
+        throw Exception("Failed to connect to master: ${e.message}")
+    }
 }
 
 fun main(args: Array<String>) {
     var redisCache = RedisCache()
     val replicationConfig = ReplicationConfig()
     val params = parseArgsParams(args, replicationConfig)
+    // Establish connection with master if this is slave instance
+    establishConnectionWithMaster(replicationConfig)
 
     val config = HashMap(params)
 
