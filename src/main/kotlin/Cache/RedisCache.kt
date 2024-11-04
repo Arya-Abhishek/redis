@@ -27,6 +27,14 @@ class RedisCache {
             .filter { it.matches(pattern.replace("*", ".*").toRegex()) }
 
     }
+
+    fun getInfo(configMap: Map<String, String>): List<String> {
+        val res = mutableListOf<String>()
+        res.add("# Replication")
+        configMap.filter { it.key !in listOf("port", "dbfilename", "dir") }
+            .forEach { (key, value) -> res.add("$key:$value")}
+        return res
+    }
 }
 
 data class CacheValue(val key: String, val value: String, val ttl: Long)

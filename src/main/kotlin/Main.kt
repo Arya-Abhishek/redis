@@ -5,6 +5,7 @@ import database.RedisDatabase
 import exectuor.ConfigCommandExecutor
 import exectuor.EchoCommandExecutor
 import exectuor.GetCommandExecutor
+import exectuor.InfoCommandExecutor
 import exectuor.KeysCommandExecutor
 import exectuor.PingCommandExecutor
 import exectuor.SetCommandExecutor
@@ -20,6 +21,9 @@ fun parseArgsParams(args: Array<String>): Map<String, String> {
         }
         i += 1
     }
+    // Add some default config values
+    // TODO: need to handle this in better way, right now hardcoding
+    argsParamsParsed.putIfAbsent("role", "master")
 
     return argsParamsParsed
 }
@@ -51,6 +55,7 @@ fun main(args: Array<String>) {
     commandHandler.registerCommand("ECHO", EchoCommandExecutor())
     commandHandler.registerCommand("SET", SetCommandExecutor())
     commandHandler.registerCommand("GET", GetCommandExecutor())
+    commandHandler.registerCommand("INFO", InfoCommandExecutor(config))
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
 
     val server = Server(redisConfig.port(), commandHandler)
