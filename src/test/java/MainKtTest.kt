@@ -461,4 +461,34 @@ class MainKtTest{
 
         socket.close()
     }
+
+    @Test
+    fun `test INFO command with replication info`() {
+        serverThread = Thread {
+            main(arrayOf("--port", "6380", "--replicaof", "localhost 6379"))
+        }
+        serverThread?.start()
+
+        Thread.sleep(1000)
+
+        val socket = Socket("localhost", 6380)
+        val writer = OutputStreamWriter(socket.getOutputStream())
+        val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+
+        writer.write("*1\r\n\$4\r\nINFO\r\n")
+        writer.flush()
+
+        val response = reader.readLine()
+        assertTrue(response.startsWith("\$"), "Response should be in bulk string format")
+        val length = response.substring(1).toInt()
+        val info = CharArray(length)
+        reader.read(info, 0, length)
+        val infoString = String(info)
+
+        assertTrue(infoString.contains("role:slave"), "INFO output should contain replication info with role as slave")
+//        assertTrue(infoString.contains("master_host:localhost"), "INFO output should contain master host info") // Right now doesn't contain other values
+//        assertTrue(infoString.contains("master_port:6379"), "INFO output should contain master port info")
+
+        socket.close()
+    }
 }

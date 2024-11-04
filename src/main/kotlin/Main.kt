@@ -24,6 +24,9 @@ fun parseArgsParams(args: Array<String>): Map<String, String> {
     // Add some default config values
     // TODO: need to handle this in better way, right now hardcoding
     argsParamsParsed.putIfAbsent("role", "master")
+    if (argsParamsParsed.containsKey("replicaof")) {
+        argsParamsParsed["role"] = "slave" // current redis instance is slave if it has replicaof config
+    }
 
     return argsParamsParsed
 }
