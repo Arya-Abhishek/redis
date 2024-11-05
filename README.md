@@ -5,5 +5,7 @@ MyRedis is a custom implementation of the Redis in-memory data structure store. 
 - **Data structures**: Supports strings as key value pair.
 - **Persistence**: Option to persist data to disk [Currently RDB format is supported].
 - **Network server**: Clients can connect over TCP/IP to store and retrieve data.
-## Getting Started
-These instructions will help you set up and run MyRedis on your local machine for development and testing purposes.
+- **Concurrency**: MyRedis is thread-safe and supports multiple clients concurrently.
+- **Logging**: Logs are generated for debugging and monitoring.
+- **Unit tests**: Unit tests are written to test the functionality of the server.
+- **Replication**: Supports master-slave replication.
