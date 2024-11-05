@@ -9,15 +9,15 @@ const val CAPA = "capa"
 
 class ReplconfCommandExecutor: CommandExecutor {
     override fun execute(cmd: Command, writer: PrintWriter, redisCache: RedisCache) {
-        val subCommand = cmd.subCommand()
-        val subCommandVal = cmd.subCommandVal()
+        val subCommandName = cmd.subCommand()
+        val subCommands = cmd.params()
 
-        when (subCommand) {
+        when (subCommandName) {
             LISTENING_PORT -> {
-                // do something, with subCommandVal = 6380, listening port of slave
+                // do something, with subCommands list containing port 6380 , listening port of slave
             }
             CAPA -> {
-                // do something, with subCommandVal = psync2
+                // do something, with subCommands = ["eof", "capa"]
             }
             else -> {
                 throw Exception("Invalid sub command for replication configuration")
