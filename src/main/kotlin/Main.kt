@@ -55,33 +55,30 @@ fun establishConnectionWithMaster(replicationConfig: ReplicationConfig, port: In
             // TODO: refactor this, with runCatching and splitting each one into separate functions
 
             // 1. Send PING command
-            writer.write("*1\r\n\$4\r\nPING\r\n")
-            writer.flush()
-            val pingResponse = reader.readLine()
-            if (pingResponse != "+PONG") {
-                throw Exception("Failed to connect to master: PING response was $pingResponse")
-            }
+            sendCommand(writer, reader, "*1\r\n\$4\r\nPING\r\n", "+PONG")
 
             // 2. Send REPLCONF listening-port command
-            writer.write("*3\r\n\$8\r\nREPLCONF\r\n\$14\r\nlistening-port\r\n\$${port.toString().length}\r\n$port\r\n")
-            writer.flush()
-            val replconfResponse = reader.readLine()
-            if (replconfResponse != "+OK") {
-                throw Exception("Failed to connect to master: REPLCONF response was $replconfResponse")
-            }
+            sendCommand(writer, reader, "*3\r\n\$8\r\nREPLCONF\r\n\$14\r\nlistening-port\r\n\$${port.toString().length}\r\n$port\r\n", "+OK")
 
             // 3. Send REPLCONF capa psync2 command
-            writer.write("*3\r\n\$8\r\nREPLCONF\r\n\$4\r\ncapa\r\n\$6\r\npsync2\r\n")
-            writer.flush()
-            val capaResponse = reader.readLine()
-            if (capaResponse != "+OK") {
-                throw Exception("Failed to connect to master: REPLCONF response was $capaResponse")
-            }
+            sendCommand(writer, reader, "*3\r\n\$8\r\nREPLCONF\r\n\$4\r\ncapa\r\n\$6\r\npsync2\r\n", "+OK")
+
+            // 4. Send PSYNC command
+            sendCommand(writer, reader, "*3\r\n\$5\r\nPSYNC\r\n\$1\r\n?\r\n\$2\r\n-1\r\n", "+FULLRESYNC")
 
             println("Connected to master")
         }
     } catch (e: Exception) {
         throw Exception("Failed to connect to master: ${e.message}")
+    }
+}
+
+fun sendCommand(writer: OutputStreamWriter, reader: BufferedReader, command: String, expectedResponse: String) {
+    writer.write(command)
+    writer.flush()
+    val response = reader.readLine()
+    if (!response.startsWith(expectedResponse)) {
+        throw Exception("Failed to connect to master: Expected $expectedResponse but got $response")
     }
 }
 
