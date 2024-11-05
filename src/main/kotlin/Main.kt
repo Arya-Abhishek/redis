@@ -9,6 +9,7 @@ import exectuor.GetCommandExecutor
 import exectuor.InfoCommandExecutor
 import exectuor.KeysCommandExecutor
 import exectuor.PingCommandExecutor
+import exectuor.PsyncCommandExecutor
 import exectuor.ReplconfCommandExecutor
 import exectuor.SetCommandExecutor
 import java.io.BufferedReader
@@ -117,6 +118,7 @@ fun main(args: Array<String>) {
     commandHandler.registerCommand("INFO", InfoCommandExecutor(replicationConfig))
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
     commandHandler.registerCommand("REPLCONF", ReplconfCommandExecutor())
+    commandHandler.registerCommand("PSYNC", PsyncCommandExecutor(replicationConfig))
 
     val server = Server(redisConfig.port(), commandHandler)
     server.start()
