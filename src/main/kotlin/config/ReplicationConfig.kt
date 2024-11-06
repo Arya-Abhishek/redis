@@ -11,6 +11,10 @@ private data class Config(
 class ReplicationConfig {
     private val config = Config()
 
+    fun isMaster(): Boolean {
+        return config.role == "master"
+    }
+
     fun getMasterPort(): Int? {
         return config.master_port
     }

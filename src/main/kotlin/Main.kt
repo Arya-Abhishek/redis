@@ -14,6 +14,7 @@ import exectuor.ReplconfCommandExecutor
 import exectuor.SetCommandExecutor
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.net.Socket
 
@@ -110,15 +111,16 @@ fun main(args: Array<String>) {
     }
 
     val commandHandler = CommandsHandler(redisCache)
+    val slavesOutputStreams = mutableListOf<OutputStream>()
     commandHandler.registerCommand("PING", PingCommandExecutor())
     commandHandler.registerCommand("KEYS", KeysCommandExecutor())
     commandHandler.registerCommand("ECHO", EchoCommandExecutor())
-    commandHandler.registerCommand("SET", SetCommandExecutor())
+    commandHandler.registerCommand("SET", SetCommandExecutor(replicationConfig, slavesOutputStreams))
     commandHandler.registerCommand("GET", GetCommandExecutor())
     commandHandler.registerCommand("INFO", InfoCommandExecutor(replicationConfig))
     commandHandler.registerCommand("CONFIG", ConfigCommandExecutor(config))
     commandHandler.registerCommand("REPLCONF", ReplconfCommandExecutor())
-    commandHandler.registerCommand("PSYNC", PsyncCommandExecutor(replicationConfig))
+    commandHandler.registerCommand("PSYNC", PsyncCommandExecutor(replicationConfig, slavesOutputStreams))
 
     val server = Server(redisConfig.port(), commandHandler)
     server.start()
