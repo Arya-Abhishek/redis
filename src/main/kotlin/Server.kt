@@ -21,10 +21,12 @@ class Server(
                 clientSocket.use { socket ->
                     val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
                     val writer = PrintWriter(socket.getOutputStream(), true)
+                    val outputStream = socket.getOutputStream()
+
                     while (true) {
                         val cmds = Command(reader)
                         if (!cmds.isValid()) break // End of current connection from same client
-                        commandHandler.handleCommand(cmds, writer)
+                        commandHandler.handleCommand(cmds, writer, outputStream)
                     }
                 }
             }
