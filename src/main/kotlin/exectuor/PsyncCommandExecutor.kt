@@ -9,7 +9,8 @@ import java.io.OutputStream
 import java.io.PrintWriter
 
 class PsyncCommandExecutor(
-    private val replicationConfig: ReplicationConfig
+    private val replicationConfig: ReplicationConfig,
+    private val slavesOutputStream: MutableList<OutputStream>
 ): CommandExecutor {
     override fun execute(cmd: Command, writer: PrintWriter, redisCache: RedisCache, outputStream: OutputStream) {
         writer.write("+FULLRESYNC ${replicationConfig.getMasterReplid()} 0\r\n")
@@ -27,6 +28,9 @@ class PsyncCommandExecutor(
                 0x73, 0x65, 0xc0.toByte(), 0x00, 0xff.toByte(), 0xf0.toByte(), 0x6e, 0x3b, 0xfe.toByte(), 0xc0.toByte(), 0xff.toByte(), 0x5a, 0xa2.toByte()
             ))
         }
+
+        // Add slave's output stream connection in the list
+        slavesOutputStream.add(outputStream)
 
         val fileContents = rdbFile.readBytes()
         val fileContentsSize = "\$${fileContents.size}\r\n"
