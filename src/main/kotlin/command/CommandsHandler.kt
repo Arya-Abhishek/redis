@@ -2,6 +2,7 @@ package command
 
 import cache.RedisCache
 import exectuor.CommandExecutor
+import java.io.OutputStream
 import java.io.PrintWriter
 
 class CommandsHandler(
@@ -15,7 +16,7 @@ class CommandsHandler(
     }
 
     // handleCommand
-    fun handleCommand(cmds: Command, writer: PrintWriter) {
-        this.executorMap.get(cmds.name().uppercase())?.execute(cmds, writer, redisCache)
+    fun handleCommand(cmds: Command, writer: PrintWriter, outputStream: OutputStream ) {
+        this.executorMap.get(cmds.name().uppercase())?.execute(cmds, writer, redisCache, outputStream)
     }
 }
